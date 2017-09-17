@@ -1,6 +1,6 @@
 {
   "name": "ionic-typeorm",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "Fork of TypeORM modified to work with Ionic. Data-Mapper ORM for TypeScript, ES7, ES6, ES5. Supports MySQL, PostgreSQL, MariaDB, SQLite, MS SQL Server, Oracle, WebSQL and Cordova SQLite databases.",
   "license": "MIT",
   "readmeFilename": "README.md",
@@ -59,7 +59,7 @@
     "gulp-tslint": "^7.0.1",
     "gulp-typescript": "^3.1.4",
     "gulp-uglify": "^2.0.0",
-    "gulpclass": "0.1.1",
+    "gulpclass": "^0.1.1",
     "mocha": "^3.2.0",
     "mssql": "^3.3.0",
     "mysql": "^2.12.0",

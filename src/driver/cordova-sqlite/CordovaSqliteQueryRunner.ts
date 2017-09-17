@@ -1,4 +1,4 @@
-import {QueryRunner} from "../../query-runner/QueryRunner";
+import {QueryRunner, InsertQueueElement, UpdateQueueElement} from "../../query-runner/QueryRunner";
 import {DatabaseConnection} from "../DatabaseConnection";
 import {ObjectLiteral} from "../../common/ObjectLiteral";
 import {TransactionAlreadyStartedError} from "../error/TransactionAlreadyStartedError";
@@ -165,6 +165,48 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
     /**
      * Insert a new row into given table.
      */
+    async insertQueue(elements: InsertQueueElement[]): Promise<InsertQueueElement[]> {
+
+        const execSql = (tx: any, tableName: string, keyValues: ObjectLiteral, generatedColumn?: ColumnMetadata): Promise<any[]> => {
+          const keys = Object.keys(keyValues);
+          const columns = keys.map(key => this.driver.escapeColumnName(key)).join(", ");
+          const values = keys.map((key, index) => "$" + (index + 1)).join(",");
+          const sql = columns.length > 0 ? (`INSERT INTO ${this.driver.escapeTableName(tableName)}(${columns}) VALUES (${values})`) : `INSERT INTO ${this.driver.escapeTableName(tableName)} DEFAULT VALUES`;
+          const parameters = keys.map(key => keyValues[key]);
+
+          return new Promise<any[]>((ok, fail) => {
+            tx.executeSql(sql, parameters, (tx: any, result: any) => {
+                if (generatedColumn)
+                    return ok(result["insertId"]);
+                ok();
+            }, (tx: any, err: any) => {
+                this.logger.logFailedQuery(sql, parameters);
+                this.logger.logQueryError(err);
+                return fail(err);
+            });
+          });
+        };
+
+        if (this.isReleased)
+            throw new QueryRunnerAlreadyReleasedError();
+
+        return new Promise<InsertQueueElement[]>((resolve, reject) => {
+            const db = this.databaseConnection.connection;
+            db.transaction((tx: any) => {
+                console.log(`InsertInQueue: ${elements.length}`);
+                elements.map(item => {
+                    execSql(tx, item.tableName, item.valuesMap, item.generatedColumn)
+                    .then(res => item.res = res);
+                });
+            }, reject, () => {
+              resolve(elements);
+            });
+        });
+    }
+
+    /**
+     * Insert a new row into given table.
+     */
     async insert(tableName: string, keyValues: ObjectLiteral, generatedColumn?: ColumnMetadata): Promise<any> {
         if (this.isReleased)
             throw new QueryRunnerAlreadyReleasedError();
@@ -192,6 +234,42 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
                     return fail(err);
                 });
             });
+        });
+    }
+
+    /**
+     * Updates rows that match given conditions in the given table.
+     */
+    async updateInQueue(elements: UpdateQueueElement[]): Promise<void> {
+        let execSql = (tx: any, tableName: string, valuesMap: ObjectLiteral, conditions: ObjectLiteral): Promise<void> => {
+            const updateValues = this.parametrize(valuesMap).join(", ");
+            const conditionString = this.parametrize(conditions, Object.keys(valuesMap).length).join(" AND ");
+            const query = `UPDATE ${this.driver.escapeTableName(tableName)} SET ${updateValues} ${conditionString ? (" WHERE " + conditionString) : ""}`;
+            const updateParams = Object.keys(valuesMap).map(key => valuesMap[key]);
+            const conditionParams = Object.keys(conditions).map(key => conditions[key]);
+            const allParameters = updateParams.concat(conditionParams);
+
+            return new Promise((ok, fail) => {
+                this.logger.logQuery(query, allParameters);
+                tx.executeSql(query, allParameters, (tx: any, result: any) => {
+                    ok();
+                }, (tx: any, err: any) => {
+                    this.logger.logFailedQuery(query, allParameters);
+                    this.logger.logQueryError(err);
+                    return fail(err);
+                });
+            });
+          };
+
+        if (this.isReleased)
+            throw new QueryRunnerAlreadyReleasedError();
+
+        return new Promise<void>((resolve, reject) => {
+            const db = this.databaseConnection.connection;
+            db.transaction((tx: any) => {
+                console.log(`UpdateInQueue: ${elements.length}`);
+                elements.map(item => execSql(tx, item.tableName, item.valuesMap, item.conditions));
+            }, reject, resolve);
         });
     }
 

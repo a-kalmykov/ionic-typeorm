@@ -4,6 +4,7 @@ import {TableSchema} from "../schema-builder/schema/TableSchema";
 import {ForeignKeySchema} from "../schema-builder/schema/ForeignKeySchema";
 import {IndexSchema} from "../schema-builder/schema/IndexSchema";
 import {ColumnType} from "../metadata/types/ColumnTypes";
+import {ObjectLiteral} from "../common/ObjectLiteral";
 
 /**
  * Runs queries on a single database connection.
@@ -49,6 +50,8 @@ export interface QueryRunner {
      */
     query(query: string, parameters?: any[]): Promise<any>;
 
+    updateInQueue(elements: UpdateQueueElement[]): Promise<void>;
+
     /**
      * Updates rows that match given simple conditions in the given table.
      */
@@ -58,6 +61,8 @@ export interface QueryRunner {
      * Inserts a new row into given table.
      */
     insert(tableName: string, valuesMap: Object, generatedColumn?: ColumnMetadata): Promise<any>;
+
+    insertQueue(items: InsertQueueElement[]): Promise<InsertQueueElement[]>;
 
     /**
      * Performs a simple DELETE query by a given conditions in a given table.
@@ -234,4 +239,17 @@ export interface QueryRunner {
      */
     truncate(tableName: string): Promise<void>;
 
+}
+
+export interface InsertQueueElement {
+    tableName: string;
+    valuesMap: Object;
+    generatedColumn?: ColumnMetadata;
+    res?: any;
+}
+
+export interface UpdateQueueElement {
+    tableName: string;
+    valuesMap: ObjectLiteral;
+    conditions: ObjectLiteral;
 }

@@ -1,13 +1,21 @@
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {EntityMetadata} from "../metadata/EntityMetadata";
 import {Connection} from "../connection/Connection";
-import {QueryRunner} from "../query-runner/QueryRunner";
+import {QueryRunner, InsertQueueElement, UpdateQueueElement} from "../query-runner/QueryRunner";
 import {Subject, JunctionInsert, JunctionRemove} from "./Subject";
 import {OrmUtils} from "../util/OrmUtils";
 import {QueryRunnerProvider} from "../query-runner/QueryRunnerProvider";
 import {RelationMetadata} from "../metadata/RelationMetadata";
 import {EntityManager} from "../entity-manager/EntityManager";
 import {PromiseUtils} from "../util/PromiseUtils";
+
+export interface InsertQueueMap {
+    subject: Subject;
+    flag: boolean;
+    newlyGeneratedId?: any;
+    parentGeneratedId?: any;
+    insertQueueElement: InsertQueueElement;
+}
 
 /**
  * Executes all database operations (inserts, updated, deletes) that must be executed
@@ -188,8 +196,10 @@ export class SubjectOperationExecutor {
 
         // note: these operations should be executed in sequence, not in parallel
         // because second group depend of obtained data from the first group
-        await Promise.all(firstInsertSubjects.map(subject => this.insert(subject, [])));
-        await Promise.all(secondInsertSubjects.map(subject => this.insert(subject, firstInsertSubjects)));
+        // await Promise.all(firstInsertSubjects.map(subject => this.insert(subject, [])));
+        // await Promise.all(secondInsertSubjects.map(subject => this.insert(subject, firstInsertSubjects)));
+        await this.insertSubjectsInQueue(firstInsertSubjects, []);
+        await this.insertSubjectsInQueue(secondInsertSubjects, firstInsertSubjects);
 
         // we need to update relation ids of the newly inserted objects (where we inserted NULLs in relations)
         // once we inserted all entities, we need to update relations which were bind to inserted entities.
@@ -198,7 +208,7 @@ export class SubjectOperationExecutor {
         // Here this method executes two inserts: one for post, one for category,
         // but category in post is inserted with "null".
         // now we need to update post table - set category with a newly persisted category id.
-        const updatePromises: Promise<any>[] = [];
+        const updateQueue: UpdateQueueElement[] = [];
         firstInsertSubjects.forEach(subject => {
 
             // first update relations with join columns (one-to-one owner and many-to-one relations)
@@ -296,8 +306,11 @@ export class SubjectOperationExecutor {
                 if (!Object.keys(conditions).length)
                     return;
 
-                const updatePromise = this.queryRunner.update(subject.metadata.table.name, updateOptions, conditions);
-                updatePromises.push(updatePromise);
+                updateQueue.push({
+                  tableName: subject.metadata.table.name,
+                  valuesMap: updateOptions,
+                  conditions: conditions
+                });
             }
 
             // we need to update relation ids if newly inserted objects are used from inverse side in one-to-many inverse relation
@@ -356,15 +369,59 @@ export class SubjectOperationExecutor {
                         updateOptions[relation.inverseRelation.joinColumn.name] = subject.entity[referencedColumn.propertyName] || subject.newlyGeneratedId;
                     }
 
-                    const updatePromise = this.queryRunner.update(relation.inverseEntityMetadata.table.name, updateOptions, conditions);
-                    updatePromises.push(updatePromise);
+                    updateQueue.push({
+                      tableName: relation.inverseEntityMetadata.table.name,
+                      valuesMap: updateOptions,
+                      conditions: conditions
+                    });
                 });
 
         });
 
-        await Promise.all(updatePromises);
+        if (updateQueue.length > 0) {
+            await this.queryRunner.updateInQueue(updateQueue);
+        }
 
         // todo: make sure to search in all insertSubjects during updating too if updated entity uses links to the newly persisted entity
+    }
+
+    private async insertSubjectsInQueue(subjects: Subject[], alreadyInserted: Subject[]): Promise<any> {
+      let insertQueueMapStep1: Array<InsertQueueMap> = [];
+      let insertQueueMapStep2: Array<InsertQueueMap> = [];
+
+      // Run first step of inserts
+      subjects.forEach(subject => {
+        this.insertStep1(insertQueueMapStep1, subject, alreadyInserted);
+      });
+      if (insertQueueMapStep1.length > 0) {
+          await this.queryRunner.insertQueue(insertQueueMapStep1.map(item => item.insertQueueElement));
+      }
+
+      // Run second step of inserts
+      insertQueueMapStep1.forEach(item => {
+        item.newlyGeneratedId = item.insertQueueElement.res;
+      });
+      insertQueueMapStep1.filter(item => item.flag).forEach(item => {
+        item.parentGeneratedId = item.newlyGeneratedId;
+        this.insertStep2(insertQueueMapStep2, item.subject, alreadyInserted, item.insertQueueElement.res);
+      });
+      if (insertQueueMapStep2.length > 0) {
+          await this.queryRunner.insertQueue(insertQueueMapStep2.map(item => item.insertQueueElement));
+      }
+
+      insertQueueMapStep2.forEach(item => {
+        let element = insertQueueMapStep1.find(value => item.subject === value.subject);
+        if (element) {
+          if (!element.newlyGeneratedId && item.insertQueueElement.res) {
+            element.newlyGeneratedId = item.insertQueueElement.res;
+          }
+        }
+      });
+
+      insertQueueMapStep1.forEach(item => {
+        this.insertStep3(item.subject, item.parentGeneratedId, item.newlyGeneratedId);
+      });
+
     }
 
     /**
@@ -402,6 +459,66 @@ export class SubjectOperationExecutor {
 
         if (newlyGeneratedId && metadata.hasGeneratedColumn)
             subject.newlyGeneratedId = newlyGeneratedId;
+    }
+
+    /**
+     * Insert in Queue steps
+     */
+    private insertStep1(insertQueueMap: InsertQueueMap[], subject: Subject, alreadyInsertedSubjects: Subject[]) {
+
+        const parentEntityMetadata = subject.metadata.parentEntityMetadata;
+        const metadata = subject.metadata;
+        const entity = subject.entity;
+
+        // if entity uses class table inheritance then we need to separate entity into sub values that will be inserted into multiple tables
+        if (metadata.table.isClassTableChild) { // todo: with current implementation inheritance of multiple class table children will not work
+            // first insert entity values into parent class table
+            const parentValuesMap = this.collectColumnsAndValues(parentEntityMetadata, entity, subject.date, undefined, metadata.discriminatorValue, alreadyInsertedSubjects);
+            insertQueueMap.push({
+              subject: subject,
+              flag: metadata.table.isClassTableChild,
+              insertQueueElement: {
+                tableName: parentEntityMetadata.table.name,
+                valuesMap: parentValuesMap,
+                generatedColumn: parentEntityMetadata.generatedColumnIfExist
+              }
+            });
+        }
+        else { // in the case when class table inheritance is not used
+            const valuesMap = this.collectColumnsAndValues(metadata, entity, subject.date, undefined, undefined, alreadyInsertedSubjects);
+            insertQueueMap.push({
+              subject: subject,
+              flag: metadata.table.isClassTableChild,
+              insertQueueElement: {
+                tableName: metadata.table.name,
+                valuesMap: valuesMap,
+                generatedColumn: metadata.generatedColumnIfExist
+              }
+            });
+        }
+    }
+
+    private insertStep2(insertQueueMap: InsertQueueMap[], subject: Subject, alreadyInsertedSubjects: Subject[], newlyGeneratedId: any) {
+        const metadata = subject.metadata;
+        const entity = subject.entity;
+
+        // second insert entity values into child class table
+        const childValuesMap = this.collectColumnsAndValues(metadata, entity, subject.date, newlyGeneratedId, undefined, alreadyInsertedSubjects);
+        this.queryRunner.insert(metadata.table.name, childValuesMap, metadata.generatedColumnIfExist)
+        .then((secondGeneratedId) => {
+          if (!newlyGeneratedId && secondGeneratedId) newlyGeneratedId = secondGeneratedId;
+        });
+
+    }
+
+    private insertStep3(subject: Subject, parentGeneratedId: any, newlyGeneratedId: any) {
+      const metadata = subject.metadata;
+
+      if (parentGeneratedId)
+          subject.parentGeneratedId = parentGeneratedId;
+
+      if (newlyGeneratedId && metadata.hasGeneratedColumn)
+          subject.newlyGeneratedId = newlyGeneratedId;
     }
 
     /**
@@ -697,13 +814,23 @@ export class SubjectOperationExecutor {
             }
         }
 
-        await Promise.all(valueMaps.map(valueMap => {
+        const updateQueue: UpdateQueueElement[] = [];
+
+        valueMaps.forEach(valueMap => {
             const idMap = valueMap.metadata.getDatabaseEntityIdMap(entity);
             if (!idMap)
                 throw new Error(`Internal error. Cannot get id of the updating entity.`);
 
-            return this.queryRunner.update(valueMap.tableName, valueMap.values, idMap);
-        }));
+            updateQueue.push({
+                tableName: valueMap.tableName,
+                valuesMap: valueMap.values,
+                conditions: idMap
+            });
+        });
+
+        if (updateQueue.length > 0) {
+            await this.queryRunner.updateInQueue(updateQueue);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -713,14 +840,19 @@ export class SubjectOperationExecutor {
     /**
      * Updates relations of all given subjects in the database.
      */
-    private executeUpdateRelations() {
-        return Promise.all(this.relationUpdateSubjects.map(subject => this.updateRelations(subject)));
+    private async executeUpdateRelations() {
+        const updateQueue: UpdateQueueElement[] = [];
+        this.relationUpdateSubjects.map(subject => updateQueue.push(this.updateRelations(subject)));
+
+        if (updateQueue.length > 0) {
+            await this.queryRunner.updateInQueue(updateQueue);
+        }
     }
 
     /**
      * Updates relations of the given subject in the database.
      */
-    private async updateRelations(subject: Subject) {
+    private updateRelations(subject: Subject): UpdateQueueElement {
         const values: ObjectLiteral = {};
         subject.relationUpdates.forEach(setRelation => {
             const value = setRelation.value ? setRelation.value[setRelation.relation.joinColumn.referencedColumn.propertyName] : null;
@@ -731,7 +863,11 @@ export class SubjectOperationExecutor {
         if (!idMap)
             throw new Error(`Internal error. Cannot get id of the updating entity.`);
 
-        return this.queryRunner.update(subject.metadata.table.name, values, idMap);
+        return {
+            tableName: subject.metadata.table.name,
+            valuesMap: values,
+            conditions: idMap
+        };
     }
 
     // -------------------------------------------------------------------------
