@@ -163,7 +163,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
     }
 
     /**
-     * Insert a new row into given table.
+     * Insert a set of new rows into given table in one transaction.
      */
     async insertQueue(elements: InsertQueueElement[]): Promise<InsertQueueElement[]> {
 
@@ -193,7 +193,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
         return new Promise<InsertQueueElement[]>((resolve, reject) => {
             const db = this.databaseConnection.connection;
             db.transaction((tx: any) => {
-                console.log(`InsertInQueue: ${elements.length}`);
+                // console.log(`InsertInQueue: ${elements.length}`);
                 elements.map(item => {
                     execSql(tx, item.tableName, item.valuesMap, item.generatedColumn)
                     .then(res => item.res = res);
@@ -238,7 +238,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
     }
 
     /**
-     * Updates rows that match given conditions in the given table.
+     * Updates rows that match given conditions in the given table in queue.
      */
     async updateInQueue(elements: UpdateQueueElement[]): Promise<void> {
         let execSql = (tx: any, tableName: string, valuesMap: ObjectLiteral, conditions: ObjectLiteral): Promise<void> => {
@@ -267,7 +267,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
         return new Promise<void>((resolve, reject) => {
             const db = this.databaseConnection.connection;
             db.transaction((tx: any) => {
-                console.log(`UpdateInQueue: ${elements.length}`);
+                // console.log(`UpdateInQueue: ${elements.length}`);
                 elements.map(item => execSql(tx, item.tableName, item.valuesMap, item.conditions));
             }, reject, resolve);
         });

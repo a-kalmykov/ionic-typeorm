@@ -50,7 +50,7 @@ export interface QueryRunner {
      */
     query(query: string, parameters?: any[]): Promise<any>;
 
-    updateInQueue(elements: UpdateQueueElement[]): Promise<void>;
+    updateInQueue?(elements: UpdateQueueElement[]): Promise<void>;
 
     /**
      * Updates rows that match given simple conditions in the given table.
@@ -62,7 +62,7 @@ export interface QueryRunner {
      */
     insert(tableName: string, valuesMap: Object, generatedColumn?: ColumnMetadata): Promise<any>;
 
-    insertQueue(items: InsertQueueElement[]): Promise<InsertQueueElement[]>;
+    insertQueue?(items: InsertQueueElement[]): Promise<InsertQueueElement[]>;
 
     /**
      * Performs a simple DELETE query by a given conditions in a given table.

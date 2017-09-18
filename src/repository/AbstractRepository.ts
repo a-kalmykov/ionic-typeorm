@@ -86,7 +86,7 @@ export class AbstractRepository<Entity extends ObjectLiteral> {
         if (!target)
             throw new CustomRepositoryDoesNotHaveEntityError(this.constructor);
 
-        return this.connection.getRepository(target).createQueryBuilder(alias);
+        return this.connection.getRepository<Entity>(target).createQueryBuilder(alias);
     }
 
     /**

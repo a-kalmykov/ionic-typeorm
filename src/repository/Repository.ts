@@ -59,7 +59,7 @@ export class Repository<Entity extends ObjectLiteral> {
      * Creates a new query builder that can be used to build a sql query.
      */
     createQueryBuilder(alias: string, queryRunnerProvider?: QueryRunnerProvider): QueryBuilder<Entity> {
-        return new QueryBuilder(this.connection, queryRunnerProvider || this.queryRunnerProvider)
+        return new QueryBuilder<Entity>(this.connection, queryRunnerProvider || this.queryRunnerProvider)
             .select(alias)
             .from(this.metadata.target, alias);
     }
@@ -104,7 +104,7 @@ export class Repository<Entity extends ObjectLiteral> {
      * and returns this new entity. This new entity is actually a loaded from the db entity with all properties
      * replaced from the new object.
      */
-    preload(object: Object): Promise<Entity> {
+    preload(object: Object): Promise<Entity | undefined> {
         const queryBuilder = this.createQueryBuilder(this.metadata.table.name);
         const plainObjectToDatabaseEntityTransformer = new PlainObjectToDatabaseEntityTransformer();
         return plainObjectToDatabaseEntityTransformer.transform(object, this.metadata, queryBuilder);

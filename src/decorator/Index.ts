@@ -5,7 +5,7 @@ import {IndexOptions} from "./options/IndexOptions";
 /**
  * Composite index must be set on entity classes and must specify entity's fields to be indexed.
  */
-export function Index(options?: IndexOptions): Function;
+export function Index(options: IndexOptions): Function;
 
 /**
  * Composite index must be set on entity classes and must specify entity's fields to be indexed.

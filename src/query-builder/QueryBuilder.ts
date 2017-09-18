@@ -1119,7 +1119,7 @@ export class QueryBuilder<Entity> {
      */
     getManyAndCount(): Promise<[Entity[], number]> {
         // todo: share database connection and counter
-        return Promise.all<any>([
+        return Promise.all<Entity[], number>([
             this.getMany(),
             this.getCount()
         ]);
@@ -1145,7 +1145,7 @@ export class QueryBuilder<Entity> {
      * Clones query builder as it is.
      */
     clone(options?: { queryRunnerProvider?: QueryRunnerProvider, skipOrderBys?: boolean, skipLimit?: boolean, skipOffset?: boolean, ignoreParentTablesJoins?: boolean }): QueryBuilder<Entity> {
-        const qb = new QueryBuilder(this.connection, options ? options.queryRunnerProvider : undefined);
+        const qb = new QueryBuilder<Entity>(this.connection, options ? options.queryRunnerProvider : undefined);
         if (options && options.ignoreParentTablesJoins)
             qb.ignoreParentTablesJoins = options.ignoreParentTablesJoins;
 

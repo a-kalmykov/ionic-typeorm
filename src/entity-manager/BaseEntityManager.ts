@@ -170,7 +170,7 @@ export abstract class BaseEntityManager {
      * Creates a new query builder that can be used to build an sql query.
      */
     createQueryBuilder<Entity>(entityClass: ObjectType<Entity>|Function|string, alias: string): QueryBuilder<Entity> {
-        return this.getRepository(entityClass as any).createQueryBuilder(alias);
+        return this.getRepository<Entity>(entityClass as any).createQueryBuilder(alias);
     }
 
     /**
@@ -212,8 +212,8 @@ export abstract class BaseEntityManager {
      * and returns this new entity. This new entity is actually a loaded from the db entity with all properties
      * replaced from the new object.
      */
-    preload<Entity>(entityClass: ObjectType<Entity>, object: Object): Promise<Entity> {
-        return this.getRepository(entityClass).preload(object);
+    preload<Entity>(entityClass: ObjectType<Entity>, object: Object): Promise<Entity | undefined> {
+        return this.getRepository<Entity>(entityClass).preload(object);
     }
 
     /**
