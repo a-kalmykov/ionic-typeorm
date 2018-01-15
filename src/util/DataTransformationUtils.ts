@@ -10,12 +10,19 @@ export class DataTransformationUtils {
     /**
      * Normalizes date object hydrated from the database.
      */
-    static normalizeHydratedDate(mixedDate: Date|string|undefined, storedInLocal: boolean): Date|string|undefined {
+    static normalizeHydratedDate(mixedDate: Date|string|undefined, storedInLocal: boolean, useISOFormat?: boolean): Date|string|undefined {
         if (!mixedDate)
             return mixedDate;
 
-        const date = typeof mixedDate === "string" ? new Date(mixedDate) : mixedDate as Date;
-        if (!storedInLocal) {
+        let date;
+        if (typeof mixedDate === "string") {
+          date = useISOFormat ? new Date(mixedDate.replace(/\s/, "T")) : new Date(mixedDate);
+        }
+        else {
+          date = mixedDate as Date;
+        }
+        // dirty hack
+        if (!storedInLocal && !useISOFormat) {
 
             // else if it was not stored in local timezone, means it was stored in UTC
             // because driver hydrates it with timezone applied why we need to add timezone hours to match a local timezone

@@ -217,7 +217,7 @@ export class CordovaSqliteDriver implements Driver {
                 return value ? true : false;
 
             case ColumnTypes.DATETIME:
-                return DataTransformationUtils.normalizeHydratedDate(value, columnMetadata.localTimezone === true);
+                return DataTransformationUtils.normalizeHydratedDate(value, columnMetadata.localTimezone === true, true);
 
             case ColumnTypes.TIME:
                 return DataTransformationUtils.mixedTimeToString(value);
