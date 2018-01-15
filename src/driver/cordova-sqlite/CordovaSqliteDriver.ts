@@ -96,7 +96,9 @@ export class CordovaSqliteDriver implements Driver {
                     connection: connection,
                     isTransactionActive: false
                 };
-                ok();
+                connection.run(`PRAGMA foreign_keys = ON;`, [], (result: any) => {
+                    ok();
+                }, fail);
             }, (error: any) => {
                 fail(error);
             });

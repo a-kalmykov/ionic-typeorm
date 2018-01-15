@@ -80,7 +80,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
 
         } finally {
             await this.release();
-            // await this.query(`PRAGMA foreign_keys = ON;`);
+            await this.query(`PRAGMA foreign_keys = ON;`);
         }
     }
 
@@ -95,7 +95,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
             throw new TransactionAlreadyStartedError();
 
         this.databaseConnection.isTransactionActive = true;
-        // await this.query("BEGIN TRANSACTION");
+        await this.query("BEGIN TRANSACTION");
     }
 
     /**
@@ -108,7 +108,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
         if (!this.databaseConnection.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        // await this.query("COMMIT");
+        await this.query("COMMIT");
         this.databaseConnection.isTransactionActive = false;
     }
 
@@ -122,7 +122,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
         if (!this.databaseConnection.isTransactionActive)
             throw new TransactionNotStartedError();
 
-        // await this.query("ROLLBACK");
+        await this.query("ROLLBACK");
         this.databaseConnection.isTransactionActive = false;
     }
 
@@ -141,24 +141,18 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
             throw new QueryRunnerAlreadyReleasedError();
 
         return new Promise((ok, fail) => {
-
             this.logger.logQuery(query, parameters);
             const db = this.databaseConnection.connection;
-            // todo: check if transaction is not active
-            db.transaction((tx: any) => {
-                tx.executeSql(query, parameters, (tx: any, result: any) => {
-                    let rows = [];
-                    for (let i = 0; i < result.rows.length; i++ ) {
-                        rows[i] = result.rows.item(i);
-                    }
-                    ok(rows);
-
-                }, (tx: any, err: any) => {
-                    this.logger.logFailedQuery(query, parameters);
-                    this.logger.logQueryError(err);
-                    return fail(err);
-                });
-            });
+            db.all(query, parameters,
+                (result: any) => {
+                    ok(result);
+                },
+                (error: any) => {
+                  this.logger.logFailedQuery(query, parameters);
+                  this.logger.logQueryError(error);
+                  return fail(error);
+                }
+            );
         });
     }
 
@@ -180,18 +174,19 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
 
             const db = this.databaseConnection.connection;
             // todo: check if transaction is not active
-            db.transaction((tx: any) => {
-                tx.executeSql(sql, parameters, (tx: any, result: any) => {
-                    if (generatedColumn)
-                        return ok(result["insertId"]);
-                    ok();
-
-                }, (tx: any, err: any) => {
+            db.run(sql, parameters,
+                (result: any) => {
+                    if (generatedColumn) {
+                        return ok(result.lastID);
+                    }
+                  ok();
+                },
+                (error: any) => {
                     this.logger.logFailedQuery(sql, parameters);
-                    this.logger.logQueryError(err);
-                    return fail(err);
-                });
-            });
+                    this.logger.logQueryError(error);
+                    return fail(error);
+                }
+            );
         });
     }
 
