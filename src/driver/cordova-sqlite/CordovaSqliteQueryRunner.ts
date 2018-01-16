@@ -66,7 +66,7 @@ export class CordovaSqliteQueryRunner implements QueryRunner {
         if (this.isReleased)
             throw new QueryRunnerAlreadyReleasedError();
 
-        // await this.query(`PRAGMA foreign_keys = OFF;`);
+        await this.query(`PRAGMA foreign_keys = OFF;`);
         await this.beginTransaction();
         try {
             const selectDropsQuery = `select 'drop table ' || name || ';' as query from sqlite_master where type = 'table' and name != 'sqlite_sequence'`;

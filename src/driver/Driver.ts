@@ -32,6 +32,11 @@ export interface Driver {
     disconnect(): Promise<void>;
 
     /**
+     * Removes database from the disk.
+     */
+    deleteDatabase?(): Promise<void>;
+
+    /**
      * Access to the native implementation of the database.
      */
     nativeInterface(): any;

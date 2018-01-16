@@ -99,9 +99,7 @@ export class CordovaSqliteDriver implements Driver {
                 connection.run(`PRAGMA foreign_keys = ON;`, [], (result: any) => {
                     ok();
                 }, fail);
-            }, (error: any) => {
-                fail(error);
-            });
+            }, fail);
         });
     }
 
@@ -109,13 +107,25 @@ export class CordovaSqliteDriver implements Driver {
      * Closes connection with the database.
      */
     disconnect(): Promise<void> {
-        if (!this.databaseConnection)
-            throw new ConnectionIsNotSetError("cordova-sqlite");
+        return new Promise<void>((ok, fail) => {
+            if (!this.databaseConnection)
+                return fail(new ConnectionIsNotSetError("cordova-sqlite"));
+            this.databaseConnection.connection.close(ok, fail);
+        });
+    }
+
+    /**
+     * Remove current database from the disk
+     */
+    deleteDatabase(): Promise<void> {
+        let name = this.options.database;
+        let location = (<any>this.options).location || 'default';
 
         return new Promise<void>((ok, fail) => {
-            // const handler = (err: any) => err ? fail(err) : ok();
-            // todo: find out how to close connection
-            ok();
+            (<any>window).sqlitePlugin.deleteDatabase({
+                name: name,
+                location: location
+            }, ok, fail)
         });
     }
 

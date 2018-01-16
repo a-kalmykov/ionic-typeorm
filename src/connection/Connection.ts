@@ -223,6 +223,19 @@ export class Connection {
     }
 
     /**
+     * Remove database from the disk
+     */
+    async deleteDatabase(): Promise<void> {
+        if (this.driver.deleteDatabase) {
+            if (this.isConnected) {
+                await this.driver.disconnect();
+                this._isConnected = false;
+            }
+            await this.driver.deleteDatabase();
+        }
+    }
+
+    /**
      * Creates database schema for all entities registered in this connection.
      *
      * @param dropBeforeSync If set to true then it drops the database with all its tables and data
