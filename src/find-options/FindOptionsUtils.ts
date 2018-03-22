@@ -97,20 +97,20 @@ export class FindOptionsUtils {
 
         if (options.leftJoinAndSelect)
             Object.keys(options.leftJoinAndSelect).forEach(key => {
-                if (options.leftJoinAndSelect) // this check because of tsc bug
-                    qb.leftJoinAndSelect(options.leftJoinAndSelect[key], key);
-            });
-
-        if (options.innerJoinAndSelect)
-            Object.keys(options.innerJoinAndSelect).forEach(key => {
                 // this check because of tsc bug
-                if (options.innerJoinAndSelect) {
+                if (options.leftJoinAndSelect) {
                     if (options.leftJoinCondition) {
                         leftJoinCondition = options.leftJoinCondition.appendAlias ?
                             key + "." + options.leftJoinCondition.condition : options.leftJoinCondition.condition;
                     }
-                    qb.innerJoinAndSelect(options.innerJoinAndSelect[key], key, leftJoinCondition);
+                    qb.leftJoinAndSelect(options.leftJoinAndSelect[key], key, leftJoinCondition);
                 }
+            });
+
+        if (options.innerJoinAndSelect)
+            Object.keys(options.innerJoinAndSelect).forEach(key => {
+                if (options.innerJoinAndSelect) // this check because of tsc bug
+                    qb.innerJoinAndSelect(options.innerJoinAndSelect[key], key);
             });
 
         if (options.parameters)

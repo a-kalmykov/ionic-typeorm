@@ -1,6 +1,6 @@
 {
   "name": "ionic-typeorm",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Fork of TypeORM modified to work with Ionic. Data-Mapper ORM for TypeScript, ES7, ES6, ES5. Supports MySQL, PostgreSQL, MariaDB, SQLite, MS SQL Server, Oracle, WebSQL and Cordova SQLite databases.",
   "license": "MIT",
   "readmeFilename": "README.md",

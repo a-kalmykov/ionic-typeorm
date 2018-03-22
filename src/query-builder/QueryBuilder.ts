@@ -1579,7 +1579,7 @@ export class QueryBuilder<Entity> {
 
             const relation = parentMetadata.findRelationWithPropertyName(join.alias.parentPropertyName);
             const junctionMetadata = relation.junctionEntityMetadata;
-            const appendedCondition = join.condition ? " AND " + this.replacePropertyNames(join.condition) : "";
+            const appendedCondition = join.condition ? " AND (" + this.replacePropertyNames(join.condition) + ")" : "";
 
             if (relation.isManyToMany) {
                 const junctionTable = junctionMetadata.table.name;
