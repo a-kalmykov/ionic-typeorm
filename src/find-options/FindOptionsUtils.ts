@@ -36,6 +36,8 @@ export class FindOptionsUtils {
      */
     static applyOptionsToQueryBuilder(qb: QueryBuilder<any>, options: FindOptions): QueryBuilder<any> {
 
+        let leftJoinCondition: string | undefined;
+
         if (options.limit)
             qb.setLimit(options.limit);
         if (options.offset)
@@ -101,8 +103,14 @@ export class FindOptionsUtils {
 
         if (options.innerJoinAndSelect)
             Object.keys(options.innerJoinAndSelect).forEach(key => {
-                if (options.innerJoinAndSelect) // this check because of tsc bug
-                    qb.innerJoinAndSelect(options.innerJoinAndSelect[key], key);
+                // this check because of tsc bug
+                if (options.innerJoinAndSelect) {
+                    if (options.leftJoinCondition) {
+                        leftJoinCondition = options.leftJoinCondition.appendAlias ?
+                            key + "." + options.leftJoinCondition.condition : options.leftJoinCondition.condition;
+                    }
+                    qb.innerJoinAndSelect(options.innerJoinAndSelect[key], key, leftJoinCondition);
+                }
             });
 
         if (options.parameters)

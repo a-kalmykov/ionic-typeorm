@@ -127,6 +127,11 @@ export interface FindOptions {
     leftJoin?: { [key: string]: string };
 
     /**
+     * LEFT JOIN Condition
+     */
+    leftJoinCondition?: { condition: string, appendAlias?: boolean }
+
+    /**
      * Array of columns to INNER JOIN.
      */
     innerJoin?: { [key: string]: string };
