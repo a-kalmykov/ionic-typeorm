@@ -16,7 +16,9 @@ export class DataTransformationUtils {
 
         let date;
         if (typeof mixedDate === "string") {
-          date = useISOFormat ? new Date(mixedDate.replace(/\s/, "T")) : new Date(mixedDate);
+          let strIso = mixedDate.replace(/\s/, "T");
+          if(!storedInLocal) strIso = strIso + "Z";
+          date = useISOFormat ? new Date(strIso) : new Date(mixedDate);
         }
         else {
           date = mixedDate as Date;
