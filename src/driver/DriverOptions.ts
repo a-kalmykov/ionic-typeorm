@@ -2,6 +2,7 @@
  * Driver type.
  */
 export type DriverType = "mysql"|"postgres"|"mariadb"|"sqlite"|"oracle"|"mssql"|"websql"|"cordova-sqlite";
+// export type DriverType = "cordova-sqlite";
 
 /**
  * Connectivity options used to connect to the database, and other database-driver-specific options.
@@ -48,7 +49,7 @@ export interface DriverOptions {
      * default: "public"
      */
     readonly schemaName?: string;
-    
+
     /**
      * Connection SID (used for Oracle databases).
      */

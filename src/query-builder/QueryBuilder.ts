@@ -4,7 +4,7 @@ import {RawSqlResultsToEntityTransformer} from "./transformer/RawSqlResultsToEnt
 import {EntityMetadata} from "../metadata/EntityMetadata";
 import {ObjectLiteral} from "../common/ObjectLiteral";
 import {QueryRunner} from "../query-runner/QueryRunner";
-import {SqlServerDriver} from "../driver/sqlserver/SqlServerDriver";
+//import {SqlServerDriver} from "../driver/sqlserver/SqlServerDriver";
 import {OrderByCondition} from "../find-options/OrderByCondition";
 import {Connection} from "../connection/Connection";
 import {JoinOptions} from "./JoinOptions";
@@ -936,7 +936,7 @@ export class QueryBuilder<Entity> {
                 idsQuery += ` ORDER BY "ids_${metadata.firstPrimaryColumn.name}"`; // this is required for mssql driver if firstResult is used. Other drivers don't care about it
             }
 
-            if (this.connection.driver instanceof SqlServerDriver) { // todo: temporary. need to refactor and make a proper abstraction
+            if (false) { // todo: temporary. need to refactor and make a proper abstraction
 
                 if (this.firstResult || this.maxResults) {
                     idsQuery += ` OFFSET ${this.firstResult || 0} ROWS`;

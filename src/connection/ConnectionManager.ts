@@ -1,20 +1,20 @@
 import {Connection} from "./Connection";
 import {ConnectionNotFoundError} from "./error/ConnectionNotFoundError";
-import {MysqlDriver} from "../driver/mysql/MysqlDriver";
+// import {MysqlDriver} from "../driver/mysql/MysqlDriver";
 import {ConnectionOptions} from "./ConnectionOptions";
 import {DriverOptions} from "../driver/DriverOptions";
 import {Driver} from "../driver/Driver";
 import {MissingDriverError} from "./error/MissingDriverError";
-import {PostgresDriver} from "../driver/postgres/PostgresDriver";
+// import {PostgresDriver} from "../driver/postgres/PostgresDriver";
 import {AlreadyHasActiveConnectionError} from "./error/AlreadyHasActiveConnectionError";
 import {Logger} from "../logger/Logger";
-import {SqliteDriver} from "../driver/sqlite/SqliteDriver";
-import {OracleDriver} from "../driver/oracle/OracleDriver";
-import {SqlServerDriver} from "../driver/sqlserver/SqlServerDriver";
+// import {SqliteDriver} from "../driver/sqlite/SqliteDriver";
+// import {OracleDriver} from "../driver/oracle/OracleDriver";
+// import {SqlServerDriver} from "../driver/sqlserver/SqlServerDriver";
 import {OrmUtils} from "../util/OrmUtils";
 import {CannotDetermineConnectionOptionsError} from "./error/CannotDetermineConnectionOptionsError";
 import {PlatformTools} from "../platform/PlatformTools";
-import {WebsqlDriver} from "../driver/websql/WebsqlDriver";
+// import {WebsqlDriver} from "../driver/websql/WebsqlDriver";
 import {CordovaSqliteDriver} from "../driver/cordova-sqlite/CordovaSqliteDriver";
 
 /**
@@ -430,20 +430,20 @@ export class ConnectionManager {
      */
     protected createDriver(options: DriverOptions, logger: Logger): Driver {
         switch (options.type) {
-            case "mysql":
-                return new MysqlDriver(options, logger, undefined);
-            case "postgres":
-                return new PostgresDriver(options, logger);
-            case "mariadb":
-                return new MysqlDriver(options, logger);
-            case "sqlite":
-                return new SqliteDriver(options, logger);
-            case "oracle":
-                return new OracleDriver(options, logger);
-            case "mssql":
-                return new SqlServerDriver(options, logger);
-            case "websql":
-                return new WebsqlDriver(options, logger);
+            // case "mysql":
+            //     return new MysqlDriver(options, logger, undefined);
+            // case "postgres":
+            //     return new PostgresDriver(options, logger);
+            // case "mariadb":
+            //     return new MysqlDriver(options, logger);
+            // case "sqlite":
+            //     return new SqliteDriver(options, logger);
+            // case "oracle":
+            //     return new OracleDriver(options, logger);
+            // case "mssql":
+            //     return new SqlServerDriver(options, logger);
+            // case "websql":
+            //     return new WebsqlDriver(options, logger);
             case "cordova-sqlite":
                 return new CordovaSqliteDriver(options, logger);
             default:
