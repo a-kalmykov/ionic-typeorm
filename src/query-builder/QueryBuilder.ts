@@ -1700,7 +1700,7 @@ export class QueryBuilder<Entity> {
         const orderByString = Object.keys(orderBys)
             .map(columnName => {
                 const [alias, column, ...embeddedProperties] = columnName.split(".");
-                return this.connection.driver.escapeAliasName(parentAlias) + "." + this.connection.driver.escapeColumnName(alias + "_" + column + embeddedProperties.join("_")) + " " + this.orderBys[columnName];
+                return this.connection.driver.escapeAliasName(parentAlias) + "." + this.connection.driver.escapeColumnName(alias + "_" + column + embeddedProperties.join("_")) + " " + orderBys[columnName];
             })
             .join(", ");
 
