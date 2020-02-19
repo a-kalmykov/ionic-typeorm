@@ -1721,7 +1721,7 @@ export class QueryBuilder<Entity> {
         if (Object.keys(orderBys).length > 0)
             return " ORDER BY " + Object.keys(orderBys)
                     .map(columnName => {
-                        return this.replacePropertyNames(columnName) + " " + this.orderBys[columnName];
+                        return this.replacePropertyNames(columnName) + " " + orderBys[columnName];
                     })
                     .join(", ");
 
